@@ -8,13 +8,13 @@
 - Save/load playback presets.
 
 ## How to use:
-1. If you dont already have one, create a **userSetup.py** file inside **maya/scripts** directory and add the following line to it:
+1. If you do not already have one, create a **userSetup.py** file inside **maya/scripts** directory and add the following line to it:
 ```python
 maya.cmds.commandPort(name='127.0.0.1:7221', stp='python', echoOutput=True)
 ```
 2. Launch **dsReferencePlayer.exe**. If connection to maya was not successfull - player will notify you and suggest changing command port.
-3. Open video file using **File>Open**. It will take some time to process video depanding on number of frames in it.
-4. From menubar select **Playback > Match player playback options** to match current video framerate and lendth inside Maya. 
+3. Open video file using **File>Open**. It will take some time to process video depending on number of frames in it.
+4. From menubar select **Playback > Match player playback options** to match current video framerate and animation length inside Maya. 
 5. Tick **Sync** check box to enable synchronization of Maya's timeslider.
 
 ## Playback controls breakdown
