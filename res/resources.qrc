@@ -1,5 +1,5 @@
 <RCC>
   <qresource prefix="/" >
-    <file>dsIcon.ico</file>
+    <file>../images/dsIcon.ico</file>
   </qresource>
 </RCC>

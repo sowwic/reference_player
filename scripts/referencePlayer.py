@@ -5,23 +5,14 @@ import cv2
 import json
 import time
 import logging
-from dsUtils.ReferencePlayer import resources
-from dsUtils.ReferencePlayer import settingsFn
 from PySide2 import QtWidgets, QtGui, QtCore,  QtMultimediaWidgets, QtMultimedia
+from dsReferencePlayer.scripts import resources
+from dsReferencePlayer.scripts import settingsFn
 
-VERSION = "1.2.3"
+VERSION = "1.3.0"
 
 # Logger
 logger = logging.getLogger(__name__)
-# Handlers
-fileLogHandler = logging.FileHandler(filename="dsReferencePlayerExceptions.log", mode="w")
-fileLogHandler.setLevel(logging.DEBUG)
-# Formatters
-baseFormatter = logging.Formatter(f'ver.{VERSION} - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# Assign formatters
-fileLogHandler.setFormatter(baseFormatter)
-#Add handlers
-logger.addHandler(fileLogHandler)
 
 
 class _videoMetaStruct:
@@ -39,6 +30,15 @@ class Window(QtWidgets.QMainWindow):
         self.version = VERSION
         self.settings = settingsFn.Settings()
         self.settings.load()
+        
+        # Setup logging file
+        fileLogHandler = logging.FileHandler(filename=os.path.join(self.settings.directory, "dsReferencePlayerExceptions.log"), mode="w")
+        fileLogHandler.setLevel(logging.DEBUG)
+        # Formatter
+        baseFormatter = logging.Formatter(f'ver.{VERSION} - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fileLogHandler.setFormatter(baseFormatter)
+        #Add handlers
+        logger.addHandler(fileLogHandler)
 
         #ADD BARS
         self.addStatusBar()
@@ -48,7 +48,7 @@ class Window(QtWidgets.QMainWindow):
         #Set window options
         self.setWindowTitle('dsReferencePlayer')
         self.setMinimumSize(400,300)
-        self.setWindowIcon(QtGui.QIcon(":/dsIcon.ico"))
+        self.setWindowIcon(QtGui.QIcon(":/images/dsIcon.ico"))
         
         #Create
         self.createWidgets()
@@ -69,7 +69,7 @@ class Window(QtWidgets.QMainWindow):
                 msg = QtWidgets.QMessageBox()
                 msg.setWindowTitle("Failed to connect")
                 msg.setIcon(QtWidgets.QMessageBox.Warning)
-                msg.setWindowIcon(QtGui.QIcon("D:\Sandbox\ReferencePlayer\dsIcon.ico"))
+                msg.setWindowIcon(QtGui.QIcon(":/images/dsIcon.ico"))
                 msg.setText("Failed to connect to Maya, set port manually through File menu to try again")
                 msg.setTextFormat(QtCore.Qt.RichText)
                 msg.exec_()
