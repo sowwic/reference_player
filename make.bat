@@ -1,2 +1,2 @@
-pyinstaller.exe --onefile --windowed --name dsReferencePlayer --icon=./images/dsIcon.ico ./scripts/main.py
+pyinstaller.exe --onefile --windowed --name dsReferencePlayer --icon=./images/dsIcon.ico ./scripts/referencePlayer.py
 PAUSE
