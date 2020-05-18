@@ -1,11 +1,10 @@
 import os
 import socket
-import traceback
 import cv2
 import json
 import time
 import logging
-from PySide2 import QtWidgets, QtGui, QtCore,  QtMultimediaWidgets, QtMultimedia
+from PySide2 import QtWidgets, QtGui, QtCore, QtMultimediaWidgets, QtMultimedia
 from dsReferencePlayer.scripts import resources
 from dsReferencePlayer.scripts import settingsFn
 
