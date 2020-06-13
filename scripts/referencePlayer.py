@@ -4,8 +4,8 @@ import cv2
 import json
 import logging
 from PySide2 import QtWidgets, QtGui, QtCore, QtMultimediaWidgets, QtMultimedia
-from dsReferencePlayer.scripts import resources
-from dsReferencePlayer.scripts import settingsFn
+from scripts import settingsFn
+from scripts import resources  # noqa: F401
 
 VERSION = "1.3.1"
 
@@ -25,9 +25,9 @@ class Window(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent, QtCore.Qt.WindowStaysOnTopHint)
+
         self.version = VERSION
         self.settings = settingsFn.Settings()
-        self.settings.load()
 
         # Setup logging file
         fileLogHandler = logging.FileHandler(filename=os.path.join(
@@ -59,7 +59,7 @@ class Window(QtWidgets.QMainWindow):
         self.videoMeta = _videoMetaStruct()
 
         # INIT MAYA CLIENT
-        self.mayaClient = MayaClient(port=self.settings.port)
+        self.mayaClient = MayaClient(port=self.settings.current["port"])
         self.connected = False
         try:
             self.connected = self.mayaClient.connect()
@@ -103,6 +103,11 @@ class Window(QtWidgets.QMainWindow):
         self.loadPresetAction.setEnabled(False)
 
         # VIEW OPTIONS
+        # Always on top
+        self.alwaysOnTopAction = QtWidgets.QAction("Always on top", self)
+        self.alwaysOnTopAction.setCheckable(True)
+        self.alwaysOnTopAction.setChecked(self.settings.current.get("alwaysOnTop", True))
+
         # Counter toggle
         self.counterAction = QtWidgets.QAction("Frame Counter", self)
         self.counterAction.setCheckable(True)
@@ -156,6 +161,9 @@ class Window(QtWidgets.QMainWindow):
         self.viewMenu.addAction(self.previewPanelAction)
         self.viewMenu.addAction(self.counterAction)
         self.viewMenu.addAction(self.statusBarAction)
+        windowViewSeparator = self.viewMenu.addSeparator()
+        self.viewMenu.addAction(self.alwaysOnTopAction)
+        windowViewSeparator.setText("Window")
 
         playerPlayBackSeparator = self.playBackMenu.addSeparator()
         playerPlayBackSeparator.setText("Player")
@@ -317,6 +325,7 @@ class Window(QtWidgets.QMainWindow):
         self.timeLinePanelAction.toggled.connect(self.timeLinePanel.setVisible)
         self.controlPanelAction.toggled.connect(self.controlPanel.setVisible)
         self.previewPanelAction.toggled.connect(self.previewPanel.setVisible)
+        self.alwaysOnTopAction.toggled.connect(self.toggleOnTop)
         # Help
         self.aboutAction.triggered.connect(self.showAbout)
         self.commandPortHelpAction.triggered.connect(self.showCommandPortHelp)
@@ -511,6 +520,16 @@ class Window(QtWidgets.QMainWindow):
             self.muteButton.setIcon(self.style().standardIcon(
                 QtWidgets.QStyle.SP_MediaVolumeMuted))
 
+    def toggleOnTop(self, state):
+        if state:
+            self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowStaysOnTopHint)
+
+        self.settings.current["alwaysOnTop"] = state
+        self.settings.save()
+        self.show()
+
     def goToFrame(self):
         self.toFrame(int(self.frameCounter.text()))
 
@@ -560,12 +579,12 @@ class Window(QtWidgets.QMainWindow):
             self.timeSlider.valueChanged.disconnect()
 
     def changeMayaPort(self):
-        currentPort = str(self.settings.port)
+        currentPort = str(self.settings.current["port"])
         text, result = QtWidgets.QInputDialog.getText(
             self, "Maya port", "Set port: ", QtWidgets.QLineEdit.Normal, currentPort)
         if result:
             try:
-                self.settings.port = int(text)
+                self.settings.current["port"] = int(text)
                 self.settings.save()
 
                 # Update client
