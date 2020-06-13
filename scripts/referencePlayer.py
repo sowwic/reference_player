@@ -24,7 +24,7 @@ class _videoMetaStruct:
 class Window(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
-        super(Window, self).__init__(parent, QtCore.Qt.WindowStaysOnTopHint)
+        super(Window, self).__init__(parent)
 
         self.version = VERSION
         self.settings = settingsFn.Settings()
@@ -54,6 +54,7 @@ class Window(QtWidgets.QMainWindow):
         self.createWidgets()
         self.createLayouts()
         self.createConnections()
+        self.toggleOnTop(self.settings.current.get("alwaysOnTop", True), update=False)
 
         # Video data struct
         self.videoMeta = _videoMetaStruct()
@@ -520,15 +521,16 @@ class Window(QtWidgets.QMainWindow):
             self.muteButton.setIcon(self.style().standardIcon(
                 QtWidgets.QStyle.SP_MediaVolumeMuted))
 
-    def toggleOnTop(self, state):
+    def toggleOnTop(self, state, update=True):
         if state:
             self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         else:
             self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowStaysOnTopHint)
 
-        self.settings.current["alwaysOnTop"] = state
-        self.settings.save()
-        self.show()
+        if update:
+            self.settings.current["alwaysOnTop"] = state
+            self.settings.save()
+            self.show()
 
     def goToFrame(self):
         self.toFrame(int(self.frameCounter.text()))
