@@ -4,7 +4,8 @@ import json
 
 class Settings:
     DEFAULTS = {"port": 7221,
-                "alwaysOnTop": True}
+                "alwaysOnTop": True,
+                "connectOnStart": False}
 
     def __init__(self):
         self.directory = os.path.join(os.getenv("LOCALAPPDATA"), "dsReferencePlayer")

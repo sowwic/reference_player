@@ -7,7 +7,7 @@ from PySide2 import QtWidgets, QtGui, QtCore, QtMultimediaWidgets, QtMultimedia
 from scripts import settingsFn
 from scripts import resources  # noqa: F401
 
-VERSION = "1.3.1"
+VERSION = "1.3.2"
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -54,30 +54,40 @@ class Window(QtWidgets.QMainWindow):
         self.createWidgets()
         self.createLayouts()
         self.createConnections()
-        self.toggleOnTop(self.settings.current.get("alwaysOnTop", True), update=False)
+        self.toggleOnTop(self.settings.current.get(
+            "alwaysOnTop", True), update=False)
 
         # Video data struct
         self.videoMeta = _videoMetaStruct()
 
         # INIT MAYA CLIENT
-        self.mayaClient = MayaClient(port=self.settings.current["port"])
+        self.mayaClient = None
         self.connected = False
+        if self.settings.current.get("connectOnStart", False):
+            self.connectToMaya()
+        self.updateConnectionStatus()
+
+    def connectToMaya(self):
         try:
+            del self.mayaClient
+            self.mayaClient = MayaClient(port=self.settings.current["port"])
             self.connected = self.mayaClient.connect()
-            if self.connected:
-                self.updateConnectionStatus()
-            else:
-                msg = QtWidgets.QMessageBox()
-                msg.setWindowTitle("Failed to connect")
-                msg.setIcon(QtWidgets.QMessageBox.Warning)
-                msg.setWindowIcon(QtGui.QIcon(":/images/dsIcon.ico"))
-                msg.setText(
-                    "Failed to connect to Maya, set port manually through File menu to try again")
-                msg.setTextFormat(QtCore.Qt.RichText)
-                msg.exec_()
-                self.updateConnectionStatus()
         except Exception as e:
-            logger.exception("Failed to initialize mayaClient")
+            logger.error(
+                f"Failed to connect to port {self.settings.current['port']}")
+            self.connected = self.mayaClient.connect()
+
+        if not self.connected:
+            msg = QtWidgets.QMessageBox(parent=self)
+            msg.setWindowTitle("Failed to connect")
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setWindowIcon(QtGui.QIcon(":/images/dsIcon.ico"))
+            msg.setText(
+                "Failed to connect to Maya, check if port is correct at 'File > Set port' and try connecting again")
+            msg.setTextFormat(QtCore.Qt.RichText)
+            msg.exec_()
+
+        self.updateConnectionStatus()
 
     def addMenuBar(self):
         # INIT MENUS
@@ -95,7 +105,7 @@ class Window(QtWidgets.QMainWindow):
         self.openAction.setStatusTip("Open reference file")
 
         # Set maya port
-        self.portAction = QtWidgets.QAction("Set Maya port", self)
+        self.portAction = QtWidgets.QAction("Set connection port", self)
 
         # Save/Load preset
         self.savePresetAction = QtWidgets.QAction("Save preset", self)
@@ -103,11 +113,20 @@ class Window(QtWidgets.QMainWindow):
         self.savePresetAction.setEnabled(False)
         self.loadPresetAction.setEnabled(False)
 
+        # Connect to maya
+        self.connectToMayaAction = QtWidgets.QAction("Connect to Maya", self)
+        self.connectOnStartAction = QtWidgets.QAction(
+            "Auto connect on launch", self)
+        self.connectOnStartAction.setCheckable(True)
+        self.connectOnStartAction.setChecked(
+            self.settings.current.get("connectOnStart", False))
+
         # VIEW OPTIONS
         # Always on top
         self.alwaysOnTopAction = QtWidgets.QAction("Always on top", self)
         self.alwaysOnTopAction.setCheckable(True)
-        self.alwaysOnTopAction.setChecked(self.settings.current.get("alwaysOnTop", True))
+        self.alwaysOnTopAction.setChecked(
+            self.settings.current.get("alwaysOnTop", True))
 
         # Counter toggle
         self.counterAction = QtWidgets.QAction("Frame Counter", self)
@@ -145,15 +164,19 @@ class Window(QtWidgets.QMainWindow):
         self.matchPlaybackOptionsAction = QtWidgets.QAction(
             "Match player playback options")
 
-        # HELP OPTIONS
-        self.commandPortHelpAction = QtWidgets.QAction("Connect to Maya")
+        # Help options
+        self.commandPortHelpAction = QtWidgets.QAction("Maya connection")
         self.aboutAction = QtWidgets.QAction("About")
 
         # ADD TO ACTIONS TO MENUS
         self.fileMenu.addAction(self.openAction)
-        self.fileMenu.addAction(self.portAction)
         self.fileMenu.addAction(self.savePresetAction)
         self.fileMenu.addAction(self.loadPresetAction)
+        mayaConnSeparator = self.fileMenu.addSeparator()
+        mayaConnSeparator.setText("Maya")
+        self.fileMenu.addAction(self.connectToMayaAction)
+        self.fileMenu.addAction(self.portAction)
+        self.fileMenu.addAction(self.connectOnStartAction)
 
         panelViewSeparator = self.viewMenu.addSeparator()
         panelViewSeparator.setText("Panels")
@@ -310,9 +333,11 @@ class Window(QtWidgets.QMainWindow):
         # MENU BAR
         # File
         self.openAction.triggered.connect(self.openFile)
-        self.portAction.triggered.connect(self.changeMayaPort)
         self.savePresetAction.triggered.connect(self.savePreset)
         self.loadPresetAction.triggered.connect(self.loadPreset)
+        self.portAction.triggered.connect(self.changeMayaPort)
+        self.connectToMayaAction.triggered.connect(self.connectToMaya)
+        self.connectOnStartAction.toggled.connect(self.toggleAutoConnect)
         # Playback
         self.negatePlayBackStartAction.triggered.connect(
             self.negatePlayBackStart)
@@ -523,14 +548,20 @@ class Window(QtWidgets.QMainWindow):
 
     def toggleOnTop(self, state, update=True):
         if state:
-            self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() |
+                                QtCore.Qt.WindowStaysOnTopHint)
         else:
-            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() & ~
+                                QtCore.Qt.WindowStaysOnTopHint)
 
         if update:
             self.settings.current["alwaysOnTop"] = state
             self.settings.save()
             self.show()
+
+    def toggleAutoConnect(self, state):
+        self.settings.current["connectOnStart"] = state
+        self.settings.save()
 
     def goToFrame(self):
         self.toFrame(int(self.frameCounter.text()))
@@ -588,14 +619,11 @@ class Window(QtWidgets.QMainWindow):
             try:
                 self.settings.current["port"] = int(text)
                 self.settings.save()
+                self.statusBar.showMessage(
+                    f"Port set to {self.settings.current['port']}", 4000)
 
-                # Update client
-                del self.mayaClient
-                self.mayaClient = MayaClient(port=int(text))
-                self.connected = self.mayaClient.connect()
-                self.updateConnectionStatus()
             except Exception as e:
-                logger.error(f"Failed to connect to port {text}")
+                logger.error(f"Failed to connect to set port {text}")
 
     def updateConnectionStatus(self):
         # UTILS
