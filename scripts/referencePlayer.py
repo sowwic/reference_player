@@ -30,12 +30,10 @@ class Window(QtWidgets.QMainWindow):
         self.settings = settingsFn.Settings()
 
         # Setup logging file
-        fileLogHandler = logging.FileHandler(filename=os.path.join(
-            self.settings.directory, "dsReferencePlayerExceptions.log"), mode="w")
+        fileLogHandler = logging.FileHandler(filename=os.path.join(self.settings.directory, "dsReferencePlayerExceptions.log"), mode="w")
         fileLogHandler.setLevel(logging.DEBUG)
         # Formatter
-        baseFormatter = logging.Formatter(
-            f'ver.{VERSION} - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        baseFormatter = logging.Formatter(f'ver.{VERSION} - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileLogHandler.setFormatter(baseFormatter)
         # Add handlers
         logger.addHandler(fileLogHandler)
@@ -54,8 +52,7 @@ class Window(QtWidgets.QMainWindow):
         self.createWidgets()
         self.createLayouts()
         self.createConnections()
-        self.toggleOnTop(self.settings.current.get(
-            "alwaysOnTop", True), update=False)
+        self.toggleOnTop(self.settings.current.get("alwaysOnTop", True), update=False)
 
         # Video data struct
         self.videoMeta = _videoMetaStruct()
