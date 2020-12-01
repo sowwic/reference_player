@@ -125,5 +125,4 @@ dmypy.json
 .pyre/
 
 # Project specific
-.ReferencePlayerEnv/
-.vscode/
+.vscode/settings.json

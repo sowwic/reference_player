@@ -1,3 +1,11 @@
 {
-    "logging.level": 10
+    "logging.level": 10,
+    "window.position": [
+        0,
+        0
+    ],
+    "window.size": [
+        600,
+        400
+    ]
 }
