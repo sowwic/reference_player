@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/" >
+    <file>../images/player_icon.ico</file>
+    <file>../images/pinned.png</file>
+  </qresource>
+</RCC>
