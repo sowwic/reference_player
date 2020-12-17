@@ -6,7 +6,7 @@ from PySide2 import QtMultimediaWidgets
 from PySide2 import QtMultimedia
 
 from reference_player import Logger
-from reference_player.widgets.playback_slider_widget import PlaybackSlider
+from reference_player.widgets.media_controls_widget import QDMediaControls
 
 
 class VideoFile:
@@ -38,7 +38,7 @@ class VideoFile:
         return frames
 
 
-class PlaybackWidget(QtWidgets.QWidget):
+class QDPlaybackWidget(QtWidgets.QWidget):
     def __init__(self, video_file: str, title="Playback", parent=None):
         super().__init__(parent)
         self.video_file = VideoFile(video_file)
@@ -60,21 +60,21 @@ class PlaybackWidget(QtWidgets.QWidget):
         self.video_panel = QtWidgets.QStackedWidget()
         self.video_panel.layout().setStackingMode(QtWidgets.QStackedLayout.StackAll)
         self.video_widget = QtMultimediaWidgets.QVideoWidget(self)
-        # TODO: Frame counter not visible
-        self.frame_counter = QtWidgets.QSpinBox()
+        self.frame_counter: QtWidgets.QSpinBox = QtWidgets.QSpinBox()
         self.frame_counter.setFrame(False)
         self.frame_counter.setMaximumSize(40, 20)
-        # self.frame_counter.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
+        self.frame_counter.setButtonSymbols(QtWidgets.QAbstractSpinBox.NoButtons)
+        self.frame_counter.setStyleSheet("background-color: rgba(0, 0, 0, 0);")
         self.media_player = QtMultimedia.QMediaPlayer(self, QtMultimedia.QMediaPlayer.VideoSurface)
         self.media_player.setVideoOutput(self.video_widget)
 
         # Playback controls
-        self.time_slider = PlaybackSlider()
+        self.controls = QDMediaControls()
+        self.time_slider = QtWidgets.QSlider(orientation=QtCore.Qt.Horizontal)
         self.play_btn = QtWidgets.QPushButton()
         self.play_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
-        # self.video_panel.addWidget(self.time_slider)
-        self.video_panel.addWidget(self.video_widget)
         self.video_panel.addWidget(self.frame_counter)
+        self.video_panel.addWidget(self.video_widget)
 
     def create_layouts(self):
         self.main_layout = QtWidgets.QVBoxLayout()
@@ -87,15 +87,17 @@ class PlaybackWidget(QtWidgets.QWidget):
         self.media_player.positionChanged.connect(self.on_position_change)
         self.media_player.stateChanged.connect(self.on_media_state_change)
         self.time_slider.sliderMoved.connect(self.set_position)
+        self.frame_counter.editingFinished.connect(self.on_frame_counter_edit)
         self.play_btn.clicked.connect(self.play)
 
     @QtCore.Slot()
     def load_file(self):
         self.media_player.setMedia(QtMultimedia.QMediaContent(QtCore.QUrl.fromLocalFile(self.video_file.path.as_posix())))
         self.media_player.setNotifyInterval(1 / self.video_file.fps * 1000)
-        Logger.debug(1 / self.video_file.fps * 1000)
         self.time_slider.setMinimum(0)
         self.time_slider.setMaximum(self.video_file.frame_count)
+        self.frame_counter.setMinimum(0)
+        self.frame_counter.setMaximum(self.video_file.frame_count)
 
         self.media_player.play()
 
@@ -134,11 +136,19 @@ class PlaybackWidget(QtWidgets.QWidget):
         return position
 
     @QtCore.Slot()
-    def set_position(self, value):
-        new_position = self.frame_to_position(value)
+    def on_frame_counter_edit(self):
+        self.time_slider.setValue(self.frame_counter.value())
+        self.set_position(self.frame_counter.value())
+
+    @QtCore.Slot()
+    def set_position(self, frame):
+        prev_state = self.media_player.state()
+        new_position = self.frame_to_position(frame)
         self.media_player.setPosition(new_position)
+        self.frame_counter.setValue(frame)
         self.media_player.play()
-        self.media_player.pause()
+        if prev_state == self.media_player.PausedState:
+            self.media_player.pause()
 
     def go_frame(self, frame: int):
         self.set_position(frame)

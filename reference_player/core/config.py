@@ -1,12 +1,12 @@
 import shutil
 import pathlib
 from reference_player import Logger
-from reference_player.core import fileFn
+from reference_player.utils import fileFn
 
 
 class Config:
 
-    DEFAULT_CONFIG_FILE = pathlib.Path.cwd() / "reference_player" / "default_config.json"
+    DEFAULT_CONFIG_FILE = pathlib.Path.cwd() / "default_config.json"
     APP_DIR = fileFn.get_data_dir() / "reference_player"
 
     @classmethod

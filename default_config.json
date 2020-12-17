@@ -7,5 +7,7 @@
     "window.size": [
         600,
         400
-    ]
+    ],
+    "maya.port": 7221,
+    "maya.autoconnect": false
 }

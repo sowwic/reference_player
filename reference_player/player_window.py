@@ -1,5 +1,6 @@
 import cv2
 import pathlib
+from functools import partial
 from PySide2 import QtWidgets
 from PySide2 import QtCore
 from PySide2 import QtGui
@@ -8,9 +9,10 @@ from reference_player import __version__
 from reference_player import Logger
 from reference_player import Config
 from reference_player import MainWindowVars
+from reference_player import MayaVars
 from reference_player.core.client import MayaClient
-from reference_player.core import rc_icons
-from reference_player.widgets.playback_widget import PlaybackWidget
+from reference_player.utils import guiFn
+from reference_player.widgets.playback_widget import QDPlaybackWidget
 
 
 class PlayerWindow(QtWidgets.QMainWindow):
@@ -22,7 +24,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
 
         # Window properties
         self.setWindowTitle("Reference player")
-        self.setWindowIcon(QtGui.QIcon(":/images/player_icon.ico"))
+        self.setWindowIcon(guiFn.get_icon("player_icon.ico"))
 
         # Initialize UI
         self.create_actions()
@@ -40,11 +42,16 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.file_open_action = QtWidgets.QAction(QtGui.QIcon("open.png"), "&Open", self)
         self.file_open_action.setShortcut("Ctrl+O")
         self.file_open_action.setStatusTip("Open video file")
+        self.maya_port_action = QtWidgets.QAction("Command port", self)
+        self.maya_connect_action = QtWidgets.QAction("Connect", self)
+        self.maya_auto_connect_action = QtWidgets.QAction("Auto connect at launch", self)
+        self.maya_auto_connect_action.setCheckable(True)
+        self.maya_auto_connect_action.setChecked(Config.get(MayaVars.auto_connect, default=False))
 
     def create_menubar(self):
         self.main_menubar: QtWidgets.QMenuBar = self.menuBar()
         self.pin_window_btn = QtWidgets.QPushButton()
-        self.pin_window_btn.setIcon(QtGui.QIcon(":/images/pinned.png"))
+        self.pin_window_btn.setIcon(guiFn.get_icon("pinned.png"))
         self.pin_window_btn.setFlat(True)
         self.pin_window_btn.setCheckable(True)
         self.main_menubar.setCornerWidget(self.pin_window_btn, QtCore.Qt.TopRightCorner)
@@ -53,6 +60,12 @@ class PlayerWindow(QtWidgets.QMainWindow):
 
         self.edit_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Edit")
         self.tools_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Tools")
+        maya_separator: QtWidgets.QAction = self.tools_menu.addSeparator()
+        maya_separator.setText("Maya")
+        self.tools_menu.addAction(self.maya_auto_connect_action)
+        self.tools_menu.addAction(self.maya_port_action)
+        self.tools_menu.addAction(self.maya_connect_action)
+
         self.help_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Help")
 
     def create_widgets(self):
@@ -69,9 +82,11 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.main_widget.setLayout(self.main_layout)
 
     def create_connections(self):
-        # Menubar
+        # Actions
         self.pin_window_btn.toggled.connect(self.toggle_always_on_top)
         self.file_open_action.triggered.connect(self.open_video_file)
+        self.maya_auto_connect_action.toggled.connect(partial(Config.set, MayaVars.auto_connect))
+        self.maya_port_action.triggered.connect(self.set_maya_port)
         # Tabs
         self.video_tabs.tabCloseRequested.connect(lambda index: self.handle_tab_close(index))
 
@@ -82,7 +97,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         super().closeEvent(event)
 
     def add_playback_tab(self, file_path):
-        playback_wigdet = PlaybackWidget(file_path)
+        playback_wigdet = QDPlaybackWidget(file_path)
         tab_title = playback_wigdet.video_file.name
         Logger.debug(tab_title)
 
@@ -97,17 +112,17 @@ class PlayerWindow(QtWidgets.QMainWindow):
             return
 
         for index in range(self.video_tabs.count()):
-            playback_widget: PlaybackWidget = self.video_tabs.widget(index)
+            playback_widget: QDPlaybackWidget = self.video_tabs.widget(index)
             if file_path == playback_widget.video_file.path:
                 self.video_tabs.setCurrentIndex(index)
                 Logger.warning("File already loaded: {0}".format(file_path))
                 return
 
-        new_playback = PlaybackWidget(file_path)
+        new_playback = QDPlaybackWidget(file_path)
         self.video_tabs.addTab(new_playback, new_playback.video_file.path.name)
 
     def handle_tab_close(self, index):
-        widget: PlaybackWidget = self.video_tabs.widget(index)
+        widget: QDPlaybackWidget = self.video_tabs.widget(index)
         self.video_tabs.removeTab(index)
         widget.media_player.pause()
         widget.deleteLater()
@@ -122,3 +137,8 @@ class PlayerWindow(QtWidgets.QMainWindow):
         if update:
             Config.set(MainWindowVars.always_on_top, state)
             self.show()
+
+    def set_maya_port(self):
+        value, result = QtWidgets.QInputDialog.getInt(self, "Maya port", "", Config.get(MayaVars.port, default=7221), minValue=1024, maxValue=65535)
+        if result:
+            Config.set(MayaVars.port, value)
