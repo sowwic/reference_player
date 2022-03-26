@@ -7,10 +7,10 @@ from PySide2 import QtCore
 
 class Logger:
 
-    LOGGER_NAME = "Player"
+    LOGGER_NAME = "player"
     LEVEL_DEFAULT = logging.DEBUG
     PROPAGATE_DEFAULT = False
-    FORMAT_DEFAULT = "[{0}][%(levelname)s] %(message)s"
+    FORMAT_DEFAULT = "[%(levelname)s] %(message)s"
     _logger_obj = None  # type: logging.Logger
     _signal_handler = None  # type: QSignalHandler
 
@@ -29,7 +29,7 @@ class Logger:
                 cls._logger_obj.setLevel(cls.LEVEL_DEFAULT)
                 cls.set_propagate(cls.PROPAGATE_DEFAULT)
                 # Formatters
-                fmt = logging.Formatter(cls.FORMAT_DEFAULT.format(cls.LOGGER_NAME), datefmt="%d-%m-%Y %H:%M:%S")
+                fmt = logging.Formatter(cls.FORMAT_DEFAULT, datefmt="%d-%m-%Y %H:%M:%S")
                 qt_fmt = logging.Formatter("[%(levelname)s] %(message)s")
                 # Handlers
                 stream_handler = logging.StreamHandler(sys.stdout)

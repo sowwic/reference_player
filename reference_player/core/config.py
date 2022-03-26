@@ -1,81 +1,77 @@
-import shutil
 import pathlib
+import dataclasses
+
 from reference_player import Logger
 from reference_player.utils import fileFn
 
 
+CONFIG_FILE_PATH = fileFn.get_data_dir() / "reference_player" / "config.json"
+
+
+@dataclasses.dataclass
 class Config:
-
-    DEFAULT_CONFIG_FILE = pathlib.Path.cwd() / "default_config.json"
-    APP_DIR = fileFn.get_data_dir() / "reference_player"
+    window_size: tuple[int] = (600, 400)
+    window_position: tuple[int] = tuple()
+    window_always_on_top: bool = True
+    logging_level: int = 10
+    maya_port: int = 7221
+    maya_autoconnect: bool = False
 
     @classmethod
-    def load(cls):
-        """Load config as dict
+    def get_fields_names(cls):
+        """Get available config field names.
 
         Returns:
-            dict: Config dictionary
+            set: set of existing field names
         """
-        return fileFn.load_json(cls.get_config_file())
+        return set(each_field.name for each_field in dataclasses.fields(cls))
 
     @classmethod
-    def update(cls, new_config_dict):
-        current_config = cls.load()  # type: dict
-        current_config.update(new_config_dict)
-        fileFn.write_json(cls.get_config_file(), current_config, sort_keys=True)
-
-    @classmethod
-    def get(cls, key, default=None):
-        """Get setting by key
+    def _load_from_json(cls, file_path: pathlib.Path):
+        """Create Config instance from given json file.
 
         Args:
-            key (str): Setting name
-            default (any, optional): Default value to set if key doesn't exist. Defaults to None.
+            file_path (pathlib.Path): path to json file
 
         Returns:
-            any: Value for requested setting
+            Config: new instance
         """
-        current_config = cls.load()  # type:dict
-        if key not in current_config.keys():
-            current_config[key] = default
-            cls.update(current_config)
-        return current_config.get(key)
-
-    @classmethod
-    def set(cls, key, value):
-        """Sets setting to passed value
-
-        Args:
-            key (str): Setting name
-            value (any): Value to set
-        """
-        cls.update({key: value})
+        json_data = fileFn.load_json(file_path)
+        field_names = cls.get_fields_names()
+        for json_field_name in list(json_data.keys()):
+            if json_field_name not in field_names:
+                json_data.pop(json_field_name)
+                Logger.warning(f"Unused config field name: {json_field_name}")
+        Logger.info(f"Loaded config: {CONFIG_FILE_PATH}")
+        return cls(**json_data)
 
     @classmethod
     def reset(cls):
-        """
-        Reset config to default. Copies default config file with normal config name
-        """
-        file_path = Config.APP_DIR / "config.json"
-        fileFn.create_missing_dir(Config.APP_DIR)
-        shutil.copy2(Config.DEFAULT_CONFIG_FILE, file_path)
-        Logger.info("Config reset to default")
-
-    @ staticmethod
-    def get_config_file():
-        """Get path to config file. Copy a default one if one doesn't exist.
+        """Write default config values to file.
 
         Returns:
-            str: Path to config file
+            Config: default config instance
         """
-        file_path = Config.APP_DIR / "config.json"
-        fileFn.create_missing_dir(Config.APP_DIR)
-        if not file_path.is_file():
-            shutil.copy(Config.DEFAULT_CONFIG_FILE, file_path)
-            Logger.debug("Default config copied to: {0}".format(file_path))
+        instance = cls()
+        fileFn.create_missing_dir(CONFIG_FILE_PATH.parent)
+        fileFn.write_json(CONFIG_FILE_PATH, dataclasses.asdict(instance))
+        Logger.info("Config reset")
+        return instance
 
-        return file_path
+    @classmethod
+    def load(cls):
+        """Load config from CONFIG_FILE_PATH
 
+        Returns:
+            Config: new instance
+        """
+        fileFn.create_missing_dir(CONFIG_FILE_PATH.parent)
+        if not CONFIG_FILE_PATH.is_file():
+            return cls.reset()
+        return cls._load_from_json(CONFIG_FILE_PATH)
 
-if __name__ == "__main__":
-    Config.reset()
+    def save(self):
+        """Write config to json file."""
+        fileFn.create_missing_dir(CONFIG_FILE_PATH.parent)
+        fileFn.write_json(CONFIG_FILE_PATH, dataclasses.asdict(self))
+        Logger.info(f"Saved config: {CONFIG_FILE_PATH}")

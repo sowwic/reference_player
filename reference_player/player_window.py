@@ -8,23 +8,25 @@ from PySide2 import QtGui
 from reference_player import __version__
 from reference_player import Logger
 from reference_player import Config
-from reference_player import MainWindowVars
-from reference_player import MayaVars
 from reference_player.core.client import MayaClient
 from reference_player.utils import guiFn
 from reference_player.widgets.playback_widget import QDPlaybackWidget
 
 
 class PlayerWindow(QtWidgets.QMainWindow):
-    DEFAULT_SIZE = (600, 400)
     MINIMUM_SIZE = (400, 300)
 
-    def __init__(self, parent=None):
+    @property
+    def config(self) -> Config:
+        return QtWidgets.QApplication.instance().config
+
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         # Window properties
         self.setWindowTitle("Reference player")
         self.setWindowIcon(guiFn.get_icon("player_icon.ico"))
+        self.setMinimumSize(*self.MINIMUM_SIZE)
 
         # Initialize UI
         self.create_actions()
@@ -33,12 +35,10 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.create_layouts()
         self.create_connections()
 
-        # Load previous position and size
-        self.toggle_always_on_top(Config.get(MainWindowVars.always_on_top, default=False), update=False)
-        self.resize(QtCore.QSize(*Config.get(MainWindowVars.size, default=self.DEFAULT_SIZE)))
-        self.move(QtCore.QPoint(*Config.get(MainWindowVars.position, default=(0, 0))))
+        self.apply_config_values()
 
     def create_actions(self):
+        """Create and configure QActions"""
         self.file_open_action = QtWidgets.QAction(QtGui.QIcon("open.png"), "&Open", self)
         self.file_open_action.setShortcut("Ctrl+O")
         self.file_open_action.setStatusTip("Open video file")
@@ -46,9 +46,12 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.maya_connect_action = QtWidgets.QAction("Connect", self)
         self.maya_auto_connect_action = QtWidgets.QAction("Auto connect at launch", self)
         self.maya_auto_connect_action.setCheckable(True)
-        self.maya_auto_connect_action.setChecked(Config.get(MayaVars.auto_connect, default=False))
+        self.maya_auto_connect_action.setChecked(self.config.maya_autoconnect)
+        self.help_reset_config_action = QtWidgets.QAction("Reset config", self)
+        self.help_reset_config_action.triggered.connect(self.reset_application_config)
 
     def create_menubar(self):
+        """Create and populate menubar"""
         self.main_menubar: QtWidgets.QMenuBar = self.menuBar()
         self.pin_window_btn = QtWidgets.QPushButton()
         self.pin_window_btn.setIcon(guiFn.get_icon("pinned.png"))
@@ -59,6 +62,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.file_open_action)
 
         self.edit_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Edit")
+
         self.tools_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Tools")
         maya_separator: QtWidgets.QAction = self.tools_menu.addSeparator()
         maya_separator.setText("Maya")
@@ -67,8 +71,10 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.tools_menu.addAction(self.maya_connect_action)
 
         self.help_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Help")
+        self.help_menu.addAction(self.help_reset_config_action)
 
     def create_widgets(self):
+        """Create and configure widgets"""
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
 
@@ -76,32 +82,59 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.video_tabs.setTabsClosable(True)
 
     def create_layouts(self):
+        """Create and populate layouts"""
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_layout.addWidget(self.video_tabs)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_widget.setLayout(self.main_layout)
 
     def create_connections(self):
+        """Create signal to slot connections"""
         # Actions
         self.pin_window_btn.toggled.connect(self.toggle_always_on_top)
         self.file_open_action.triggered.connect(self.open_video_file)
-        self.maya_auto_connect_action.toggled.connect(partial(Config.set, MayaVars.auto_connect))
         self.maya_port_action.triggered.connect(self.set_maya_port)
+
         # Tabs
         self.video_tabs.tabCloseRequested.connect(lambda index: self.handle_tab_close(index))
 
-    def closeEvent(self, event):
-        Config.set(MainWindowVars.position, [self.pos().x(), self.pos().y()])
-        Config.set(MainWindowVars.size, [self.width(), self.height()])
-        Logger.debug("Saved main window size and position.")
+    def closeEvent(self, event: QtCore.QEvent):
+        """
+        Override close event to:
+
+        - Save config values
+        """
+        self.save_config_values()
         super().closeEvent(event)
 
-    def add_playback_tab(self, file_path):
-        playback_wigdet = QDPlaybackWidget(file_path)
-        tab_title = playback_wigdet.video_file.name
-        Logger.debug(tab_title)
+    def save_config_values(self):
+        """Set values for config."""
+        self.config.window_position = (self.pos().x(), self.pos().y())
+        self.config.window_size = (self.width(), self.height())
+        self.config.window_always_on_top = self.pin_window_btn.isChecked()
+        self.config.maya_autoconnect = self.maya_auto_connect_action.isChecked()
+
+    def apply_config_values(self):
+        """Apply values from application config."""
+        self.resize(QtCore.QSize(*self.config.window_size))
+        if not self.config.window_position:
+            center_position: QtCore.QPoint = self.pos(
+            ) + QtWidgets.QApplication.primaryScreen().geometry().center() - self.geometry().center()
+            self.config.window_position = (center_position.x(), center_position.y())
+        self.move(QtCore.QPoint(*self.config.window_position))
+
+        self.toggle_always_on_top(self.config.window_always_on_top)
+
+    def reset_application_config(self):
+        """Reset application config and apply changes."""
+        QtWidgets.QApplication.instance().reset_config()
+        self.apply_config_values()
 
     def open_video_file(self):
+        """Opens file dialog for choosing a video file.
+
+        If video file already open in one of the tabs - sets it active.
+        """
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open video file", None)
         if not file_path:
             return
@@ -121,24 +154,33 @@ class PlayerWindow(QtWidgets.QMainWindow):
         new_playback = QDPlaybackWidget(file_path)
         self.video_tabs.addTab(new_playback, new_playback.video_file.path.name)
 
-    def handle_tab_close(self, index):
+    def handle_tab_close(self, index: int):
+        """Handles operation of closing a tab and deleting a playback widget.
+
+        Args:
+            index (int): index of tab to close
+        """
         widget: QDPlaybackWidget = self.video_tabs.widget(index)
         self.video_tabs.removeTab(index)
         widget.media_player.pause()
         widget.deleteLater()
 
-    def toggle_always_on_top(self, state, update=True):
+    def toggle_always_on_top(self, state: bool):
+        """Sets window always on top flag and reshows the window.
+
+        Args:
+            state (bool): _description_
+        """
         if state:
             self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         else:
             self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.WindowStaysOnTopHint)
-
         self.pin_window_btn.setChecked(state)
-        if update:
-            Config.set(MainWindowVars.always_on_top, state)
-            self.show()
+        self.show()
 
     def set_maya_port(self):
-        value, result = QtWidgets.QInputDialog.getInt(self, "Maya port", "", Config.get(MayaVars.port, default=7221), minValue=1024, maxValue=65535)
+        """Show dialog for setting Maya TCP connection port."""
+        value, result = QtWidgets.QInputDialog.getInt(
+            self, "Maya port", "Port number:", self.config.maya_port, minValue=1024, maxValue=65535)
         if result:
-            Config.set(MayaVars.port, value)
+            self.config.maya_port = value

@@ -3,10 +3,25 @@ from PySide2 import QtCore
 
 
 def get_icon(name):
+    """Create QIcon from given name.
+
+    Expects icon to exist under res/images directory
+
+    Args:
+        name (str): icon name with extension
+
+    Returns:
+        QtGui.QIcon: icon object instance
+    """
     return QtGui.QIcon(f"res/images/{name}")
 
 
 def dark_pallete():
+    """Create dark fusion palette.
+
+    Returns:
+        QtGui.QPalette: dark palette
+    """
     palette = QtGui.QPalette()
     palette.setColor(QtGui.QPalette.Window, QtGui.QColor(45, 45, 45))
     palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(208, 208, 208))

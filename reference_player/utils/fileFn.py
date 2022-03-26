@@ -1,10 +1,14 @@
 import pathlib
 import sys
 import json
-from reference_player import Logger
 
 
 def get_data_dir() -> pathlib.Path:
+    """Get path to user data directory for current OS.
+
+    Returns:
+        pathlib.Path: path to user data directory
+    """
     home = pathlib.Path.home()
     if sys.platform == "win32":
         return home / "AppData/Roaming"
@@ -15,15 +19,16 @@ def get_data_dir() -> pathlib.Path:
 
 
 # Directory
-def create_missing_dir(path, default_data="") -> pathlib.Path:
-    """Creates specified directory if one doesn't exist
+def create_missing_dir(path) -> pathlib.Path:
+    """"Creates specified directory if one doesn't exist
 
-    :param path: Directory path
-    :type path: str
-    :return: Path to directory
-    :rtype: pathlib.Path
+    Args:
+        path (str | pathlib.Path): directory path
+
+    Returns:
+        pathlib.Path: Created directory.
     """
-    path_obj = pathlib.Path(path)
+    path_obj = pathlib.Path(path) if not isinstance(path, pathlib.Path) else path
     if not path_obj.is_dir():
         path_obj.mkdir()
 
@@ -31,38 +36,35 @@ def create_missing_dir(path, default_data="") -> pathlib.Path:
 
 
 # Json
-def write_json(path, data={}, as_string=False, sort_keys=True):
-    try:
-        with open(path, "w") as json_file:
-            if as_string:
-                json_file.write(json.dumps(data, sort_keys=sort_keys, indent=4, separators=(",", ":")))
-            else:
-                json.dump(data, json_file, indent=4)
+def write_json(path: pathlib.Path, data: dict, as_string=False, sort_keys=True):
+    """Write to json file.
 
-    except IOError as e:
-        Logger.exception("{0} is not a valid file path".format(path), exc_info=e)
-        return None
-
-    except BaseException:
-        Logger.exception("Failed to write file {0}".format(path), exc_info=1)
-        return None
-
-    return path
+    Args:
+        path (pathlib.Path): path to json file
+        data (dict): data to write
+        as_string (bool, optional): if data should be writen as string. Defaults to False.
+        sort_keys (bool, optional): if keys should be sorted. Defaults to True.
+    """
+    with path.open("w") as json_file:
+        if as_string:
+            json_file.write(json.dumps(data, sort_keys=sort_keys, indent=4, separators=(",", ":")))
+        else:
+            json.dump(data, json_file, indent=4)
 
 
-def load_json(path, string_data=False):
-    try:
-        with open(path, "r") as json_file:
-            if string_data:
-                data = json.loads(json_file)
-            else:
-                data = json.load(json_file)
+def load_json(path: pathlib.Path, string_data=False) -> dict:
+    """Loads data from given json file.
 
-    except IOError:
-        Logger.exception("{0} is not a valid file path".format(path))
-        return None
-    except BaseException:
-        Logger.exception("Failed to load file {0}".format(path))
-        return None
+    Args:
+        path (pathlib.Path): path to json file
+        string_data (bool, optional): if data is written as string. Defaults to False.
 
-    return data  # type:dict
+    Returns:
+        dict: loaded data
+    """
+    with path.open("r") as json_file:
+        if string_data:
+            data = json.loads(json_file)
+        else:
+            data = json.load(json_file)
+    return data
