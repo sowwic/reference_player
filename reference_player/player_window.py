@@ -54,6 +54,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         """Create and populate menubar"""
         self.main_menubar: QtWidgets.QMenuBar = self.menuBar()
         self.pin_window_btn = QtWidgets.QPushButton()
+        self.pin_window_btn.setToolTip("Toggle always on top")
         self.pin_window_btn.setIcon(guiFn.get_icon("pinned.png"))
         self.pin_window_btn.setFlat(True)
         self.pin_window_btn.setCheckable(True)
