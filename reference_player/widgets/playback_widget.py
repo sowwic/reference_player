@@ -31,13 +31,13 @@ class VideoFile:
         self.duration_ms = self.duration_sec * 1000
         Logger.debug(self)
 
-    def get_frame_count(self):
+    def get_frame_count(self) -> int:
         """Get frame count of the video from file metadata.
 
         If metadata doesn't have info - count manually (slow)
 
         Returns:
-            _type_: _description_
+            int: number of frames
         """
         # Try fast count
         frames = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -54,6 +54,12 @@ class VideoFile:
 
 class QDPlaybackWidget(QtWidgets.QWidget):
     def __init__(self, video_file: str, parent: QtWidgets.QWidget = None):
+        """Widget with media player and playback controls.
+
+        Args:
+            video_file (str): path to video file.
+            parent (QtWidgets.QWidget, optional): parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.video_file = VideoFile(video_file)
 
