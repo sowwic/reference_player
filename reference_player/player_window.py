@@ -47,6 +47,9 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.maya_auto_connect_action = QtWidgets.QAction("Auto connect at launch", self)
         self.maya_auto_connect_action.setCheckable(True)
         self.maya_auto_connect_action.setChecked(self.config.maya_autoconnect)
+        self.help_debug_logging_action = QtWidgets.QAction("Debug logging", self)
+        self.help_debug_logging_action.setCheckable(True)
+        self.help_debug_logging_action.setChecked(Logger.get_level() == 10)
         self.help_reset_config_action = QtWidgets.QAction("Reset config", self)
         self.help_reset_config_action.triggered.connect(self.reset_application_config)
 
@@ -72,6 +75,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.tools_menu.addAction(self.maya_connect_action)
 
         self.help_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Help")
+        self.help_menu.addAction(self.help_debug_logging_action)
         self.help_menu.addAction(self.help_reset_config_action)
 
     def create_widgets(self):
@@ -95,6 +99,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.pin_window_btn.toggled.connect(self.toggle_always_on_top)
         self.file_open_action.triggered.connect(self.open_video_file)
         self.maya_port_action.triggered.connect(self.set_maya_port)
+        self.help_debug_logging_action.toggled.connect(self.set_debug_logging)
 
         # Tabs
         self.video_tabs.tabCloseRequested.connect(lambda index: self.handle_tab_close(index))
@@ -125,6 +130,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.move(QtCore.QPoint(*self.config.window_position))
 
         self.toggle_always_on_top(self.config.window_always_on_top)
+        Logger.set_level(self.config.logging_level)
 
     def reset_application_config(self):
         """Reset application config and apply changes."""
@@ -185,3 +191,9 @@ class PlayerWindow(QtWidgets.QMainWindow):
             self, "Maya port", "Port number:", self.config.maya_port, minValue=1024, maxValue=65535)
         if result:
             self.config.maya_port = value
+
+    def set_debug_logging(self, state):
+        debug_state = {True: 10,
+                       False: 20}
+        Logger.set_level(debug_state[state])
+        self.config.logging_level = debug_state[state]

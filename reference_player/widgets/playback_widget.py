@@ -30,7 +30,7 @@ class VideoFile:
         self.fps: int = min(self.SUPPORTED_FPS, key=lambda x: abs(
             x - self.capture.get(cv2.CAP_PROP_FPS)))
         self.duration_ms = self.frame_count * self.fps
-        Logger.debug(self)
+        Logger.info(self)
 
     def get_frame_count(self) -> int:
         """Get frame count of the video from file metadata.
