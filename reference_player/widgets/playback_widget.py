@@ -1,12 +1,14 @@
 import pathlib
+import math
 import cv2
+
 from PySide2 import QtWidgets
 from PySide2 import QtCore
 from PySide2 import QtMultimediaWidgets
 from PySide2 import QtMultimedia
 
 from reference_player import Logger
-from reference_player.widgets.media_controls_widget import QDMediaControls
+from reference_player.widgets.playback_controls_widget import QDPlaybackControls
 
 
 class VideoFile:
@@ -14,7 +16,7 @@ class VideoFile:
                      25, 24, 23.976, 20, 16, 15, 12, 10, 8, 6, 5, 4, 3, 2]
 
     def __repr__(self) -> str:
-        return f"Video - {self.path.name}: {self.frame_count} frames; {self.fps}fps, {self.duration_ms}({self.duration_sec})ms"
+        return f"Video - {self.path.name}: {self.frame_count} frames; {self.fps}fps, {self.duration_ms} ms"
 
     def __init__(self, file_path: str):
         """Video file data.
@@ -27,8 +29,7 @@ class VideoFile:
         self.frame_count = self.get_frame_count()
         self.fps: int = min(self.SUPPORTED_FPS, key=lambda x: abs(
             x - self.capture.get(cv2.CAP_PROP_FPS)))
-        self.duration_sec = self.frame_count / self.fps
-        self.duration_ms = self.duration_sec * 1000
+        self.duration_ms = self.frame_count * self.fps
         Logger.debug(self)
 
     def get_frame_count(self) -> int:
@@ -91,10 +92,7 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.media_player.setVideoOutput(self.video_widget)
 
         # Playback controls
-        self.controls = QDMediaControls()
-        self.time_slider = QtWidgets.QSlider(orientation=QtCore.Qt.Horizontal)
-        self.play_btn = QtWidgets.QPushButton()
-        self.play_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
+        self.media_controls = QDPlaybackControls(self.media_player)
         self.video_panel.addWidget(self.frame_counter)
         self.video_panel.addWidget(self.video_widget)
 
@@ -103,16 +101,21 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.main_layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.main_layout)
         self.main_layout.addWidget(self.video_panel)
-        self.main_layout.addWidget(self.time_slider)
-        self.main_layout.addWidget(self.play_btn)
+        self.main_layout.addWidget(self.media_controls)
 
     def create_connections(self):
         """Create signal to slot connections."""
         self.media_player.positionChanged.connect(self.on_position_change)
         self.media_player.stateChanged.connect(self.on_media_state_change)
-        self.time_slider.sliderMoved.connect(self.set_position)
+        self.media_controls.time_slider.sliderMoved.connect(self.set_position)
         self.frame_counter.editingFinished.connect(self.on_frame_counter_edit)
-        self.play_btn.clicked.connect(self.play)
+
+        # Media controls
+        self.media_controls.go_to_start_btn.clicked.connect(self.go_to_start)
+        self.media_controls.step_back_btn.clicked.connect(self.frame_step_back)
+        self.media_controls.play_btn.clicked.connect(self.play)
+        self.media_controls.step_forward_btn.clicked.connect(self.frame_step_forward)
+        self.media_controls.go_to_end_btn.clicked.connect(self.go_to_end)
 
     @QtCore.Slot()
     def load_file(self):
@@ -120,8 +123,7 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.media_player.setMedia(QtMultimedia.QMediaContent(
             QtCore.QUrl.fromLocalFile(self.video_file.path.as_posix())))
         self.media_player.setNotifyInterval(1 / self.video_file.fps * 1000)
-        self.time_slider.setMinimum(0)
-        self.time_slider.setMaximum(self.video_file.frame_count)
+        self.media_controls.time_slider.set_time_range((0, self.video_file.frame_count))
         self.frame_counter.setMinimum(0)
         self.frame_counter.setMaximum(self.video_file.frame_count)
         self.media_player.play()
@@ -132,11 +134,7 @@ class QDPlaybackWidget(QtWidgets.QWidget):
 
         - Changes icon between "pause" and "play"
         """
-        if self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
-            self.play_btn.setIcon(
-                self.style().standardIcon(QtWidgets.QStyle.SP_MediaPause))
-        else:
-            self.play_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
+        self.media_controls.set_play_button_icon(self.media_player.state())
 
     @QtCore.Slot(int)
     def on_position_change(self, position: int):
@@ -150,13 +148,11 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         """
         if self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
             current_frame = self.position_to_frame(position)
-            # Logger.debug(current_frame)
-            if current_frame > self.time_slider.maximum():
-                self.time_slider.setValue(self.time_slider.maximum())
+            if current_frame > self.media_controls.time_slider.maximum():
                 self.media_player.pause()
-            else:
-                self.time_slider.setValue(current_frame)
-                self.frame_counter.setValue(current_frame)
+
+            self.media_controls.time_slider.setValue(current_frame)
+            self.frame_counter.setValue(current_frame)
 
     @QtCore.Slot(float)
     def position_to_frame(self, position: float) -> int:
@@ -168,12 +164,11 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         Returns:
             int: current frame
         """
-
         frame = 0
         if position:
             progress = position / self.video_file.duration_ms
             frame = progress * self.video_file.frame_count
-        return int(frame)
+        return math.ceil(frame)
 
     @QtCore.Slot(int)
     def frame_to_position(self, frame: int) -> float:
@@ -196,7 +191,7 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         - Sets time slider value
         - Sets playback position
         """
-        self.time_slider.setValue(self.frame_counter.value())
+        self.media_controls.time_slider.setValue(self.frame_counter.value())
         self.set_position(self.frame_counter.value())
 
     @QtCore.Slot()
@@ -214,6 +209,12 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         if prev_state == self.media_player.PausedState:
             self.media_player.pause()
 
+    def frame_step_forward(self):
+        self.go_frame(self.media_controls.time_slider.value() + 1)
+
+    def frame_step_back(self):
+        self.go_frame(self.media_controls.time_slider.value() - 1)
+
     def go_frame(self, frame: int):
         """Go to frame.
 
@@ -221,21 +222,21 @@ class QDPlaybackWidget(QtWidgets.QWidget):
             frame (int): frame number
         """
         self.set_position(frame)
-        self.time_slider.setValue(frame)
+        self.media_controls.time_slider.setValue(frame)
 
     def go_to_start(self):
         """Go to the start of the playback."""
-        self.go_frame(self.time_slider.minimum())
+        self.go_frame(self.media_controls.time_slider.minimum())
 
     def go_to_end(self):
         """Go to the end of the playback."""
-        self.go_frame(self.time_slider.maximum())
+        self.go_frame(self.media_controls.time_slider.maximum())
 
     def play(self):
         """Play media file."""
         if self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
             self.media_player.pause()
         else:
-            if self.time_slider.value() >= self.time_slider.maximum():
+            if self.media_controls.time_slider.value() >= self.media_controls.time_slider.maximum():
                 self.go_to_start()
             self.media_player.play()
