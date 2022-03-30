@@ -8,7 +8,7 @@ from scripts import settingsFn
 from scripts import resources  # noqa: F401
 from scripts.widget_actions import QLabeledSliderWidget
 
-VERSION = "1.3.2"
+VERSION = "1.3.3-dev"
 
 # Logger
 logger = logging.getLogger(__name__)
