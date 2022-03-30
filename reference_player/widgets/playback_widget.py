@@ -8,15 +8,16 @@ from PySide2 import QtMultimediaWidgets
 from PySide2 import QtMultimedia
 
 from reference_player import Logger
+from reference_player.core.reference import Reference
 from reference_player.widgets.playback_controls_widget import QDPlaybackControls
 
 
-class VideoFile:
-    SUPPORTED_FPS = [60, 59.94, 50, 48, 47.952, 40, 30, 29.97,
-                     25, 24, 23.976, 20, 16, 15, 12, 10, 8, 6, 5, 4, 3, 2]
+class MediaFile:
+    SUPPORTED_FPS = (60, 59.94, 50, 48, 47.952, 40, 30, 29.97,
+                     25, 24, 23.976, 20, 16, 15, 12, 10, 8, 6, 5, 4, 3, 2)
 
     def __repr__(self) -> str:
-        return f"Video - {self.path.name}: {self.frame_count} frames; {self.fps}fps, {self.duration_ms} ms"
+        return f"Video - {self.path.name}: {self.frame_count} frames; {self.fps}fps; {self.duration_ms} ms"
 
     def __init__(self, file_path: str):
         """Video file data.
@@ -54,7 +55,7 @@ class VideoFile:
 
 
 class QDPlaybackWidget(QtWidgets.QWidget):
-    def __init__(self, video_file: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, reference: Reference, parent: QtWidgets.QWidget = None):
         """Widget with media player and playback controls.
 
         Args:
@@ -62,7 +63,8 @@ class QDPlaybackWidget(QtWidgets.QWidget):
             parent (QtWidgets.QWidget, optional): parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self.video_file = VideoFile(video_file)
+        self.media_file: MediaFile = None
+        self.reference: Reference = reference
 
         # Initialize UI
         self.create_actions()
@@ -70,8 +72,7 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.create_layouts()
         self.create_connections()
 
-        # Load video file
-        self.load_file()
+        self.update_media_file()
 
     def create_actions(self):
         """Create and configure QActions."""
@@ -104,6 +105,9 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.main_layout.addWidget(self.media_controls)
 
     def create_connections(self):
+        # Reference
+        self.reference.signals.media_file_changed.connect(self.update_media_file)
+
         """Create signal to slot connections."""
         self.media_player.positionChanged.connect(self.on_position_change)
         self.media_player.stateChanged.connect(self.on_media_state_change)
@@ -117,15 +121,23 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.media_controls.step_forward_btn.clicked.connect(self.frame_step_forward)
         self.media_controls.go_to_end_btn.clicked.connect(self.go_to_end)
 
+    def update_media_file(self):
+        if not self.reference.is_media_file_valid():
+            self.media_file = None
+            return
+
+        self.media_file = MediaFile(self.reference.media_file)
+        self.load_media_file()
+
     @QtCore.Slot()
-    def load_file(self):
+    def load_media_file(self):
         """Load video file"""
         self.media_player.setMedia(QtMultimedia.QMediaContent(
-            QtCore.QUrl.fromLocalFile(self.video_file.path.as_posix())))
-        self.media_player.setNotifyInterval(1 / self.video_file.fps * 1000)
-        self.media_controls.time_slider.set_time_range((0, self.video_file.frame_count))
+            QtCore.QUrl.fromLocalFile(self.media_file.path.as_posix())))
+        self.media_player.setNotifyInterval(1 / self.media_file.fps * 1000)
+        self.media_controls.time_slider.set_time_range((0, self.media_file.frame_count))
         self.frame_counter.setMinimum(0)
-        self.frame_counter.setMaximum(self.video_file.frame_count)
+        self.frame_counter.setMaximum(self.media_file.frame_count)
         self.media_player.play()
 
     @QtCore.Slot()
@@ -164,10 +176,13 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         Returns:
             int: current frame
         """
+        if not self.media_file:
+            return 0
+
         frame = 0
         if position:
-            progress = position / self.video_file.duration_ms
-            frame = progress * self.video_file.frame_count
+            progress = position / self.media_file.duration_ms
+            frame = progress * self.media_file.frame_count
         return math.ceil(frame)
 
     @QtCore.Slot(int)
@@ -180,8 +195,11 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         Returns:
             float: playback position in ms
         """
-        progress = frame / self.video_file.frame_count
-        position = progress * self.video_file.duration_ms
+        if not self.media_file:
+            return 0
+
+        progress = frame / self.media_file.frame_count
+        position = progress * self.media_file.duration_ms
         return position
 
     @QtCore.Slot()

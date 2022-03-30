@@ -9,6 +9,7 @@ from reference_player import __version__
 from reference_player import Logger
 from reference_player import Config
 from reference_player.core.client import MayaClient
+from reference_player.core.reference import Reference
 from reference_player.utils import guiFn
 from reference_player.widgets.playback_widget import QDPlaybackWidget
 
@@ -143,7 +144,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
 
         If video file already open in one of the tabs - sets it active.
         """
-        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open video file", None)
+        file_path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Open reference file", None)
         if not file_path:
             return
 
@@ -152,15 +153,9 @@ class PlayerWindow(QtWidgets.QMainWindow):
             Logger.error("Not a file: {0}".format(file_path))
             return
 
-        for index in range(self.video_tabs.count()):
-            playback_widget: QDPlaybackWidget = self.video_tabs.widget(index)
-            if file_path == playback_widget.video_file.path:
-                self.video_tabs.setCurrentIndex(index)
-                Logger.warning("File already loaded: {0}".format(file_path))
-                return
-
-        new_playback = QDPlaybackWidget(file_path)
-        self.video_tabs.addTab(new_playback, new_playback.video_file.path.name)
+        ref_file = Reference.from_file(file_path)
+        new_playback = QDPlaybackWidget(ref_file)
+        self.video_tabs.addTab(new_playback, new_playback.reference.name)
 
     def handle_tab_close(self, index: int):
         """Handles operation of closing a tab and deleting a playback widget.

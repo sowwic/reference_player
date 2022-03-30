@@ -18,8 +18,9 @@ class QDPlaybackControls(QtWidgets.QWidget):
         self.create_widgets()
         self.create_layouts()
         self.create_connections()
+        self.update_enabled_state()
 
-    @property
+    @ property
     def media_player(self):
         return self.__media_player
 
@@ -67,12 +68,16 @@ class QDPlaybackControls(QtWidgets.QWidget):
         self.main_layout.addLayout(buttons_layout)
 
     def create_connections(self):
+        self.__media_player.mediaChanged.connect(self.update_enabled_state)
         self.volume_slider.sliderMoved.connect(self.media_player.setVolume)
         self.volume_slider.sliderMoved.connect(lambda value: self.set_muted(
             True) if not value else self.set_muted(False))
         self.mute_button.clicked.connect(lambda: self.set_muted(not self.media_player.isMuted()))
 
-    @QtCore.Slot(int)
+    def update_enabled_state(self):
+        self.setDisabled(self.__media_player.media().isNull())
+
+    @ QtCore.Slot(int)
     def set_play_button_icon(self, media_player_state: int):
         if media_player_state == QtMultimedia.QMediaPlayer.PlayingState:
             self.play_btn.setIcon(
@@ -80,7 +85,7 @@ class QDPlaybackControls(QtWidgets.QWidget):
         else:
             self.play_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay))
 
-    @QtCore.Slot()
+    @ QtCore.Slot()
     def set_muted(self, state: bool):
         self.media_player.setMuted(state)
         self.mute_button.setIcon(self._mute_icons_map[state])
