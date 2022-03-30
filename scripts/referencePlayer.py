@@ -6,6 +6,7 @@ import logging
 from PySide2 import QtWidgets, QtGui, QtCore, QtMultimediaWidgets, QtMultimedia
 from scripts import settingsFn
 from scripts import resources  # noqa: F401
+from scripts.widget_actions import QLabeledSliderWidget
 
 VERSION = "1.3.2"
 
@@ -30,10 +31,12 @@ class Window(QtWidgets.QMainWindow):
         self.settings = settingsFn.Settings()
 
         # Setup logging file
-        fileLogHandler = logging.FileHandler(filename=os.path.join(self.settings.directory, "dsReferencePlayerExceptions.log"), mode="w")
+        fileLogHandler = logging.FileHandler(filename=os.path.join(
+            self.settings.directory, "dsReferencePlayerExceptions.log"), mode="w")
         fileLogHandler.setLevel(logging.DEBUG)
         # Formatter
-        baseFormatter = logging.Formatter(f'ver.{VERSION} - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        baseFormatter = logging.Formatter(
+            f'ver.{VERSION} - %(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fileLogHandler.setFormatter(baseFormatter)
         # Add handlers
         logger.addHandler(fileLogHandler)
@@ -150,6 +153,11 @@ class Window(QtWidgets.QMainWindow):
         self.controlPanelAction.setCheckable(True)
         self.controlPanelAction.setChecked(True)
 
+        self.window_opacity_action = QtWidgets.QWidgetAction(self)
+        self.window_opacity_widget = QLabeledSliderWidget("Opacity:", (20, 100))
+        self.window_opacity_action.setDefaultWidget(self.window_opacity_widget)
+        self.window_opacity_widget.slider.setValue(self.windowOpacity() * 100)
+
         # PLAYBACK OPTIONS
         self.negatePlayBackStartAction = QtWidgets.QAction(
             "Negate playback start")
@@ -184,6 +192,7 @@ class Window(QtWidgets.QMainWindow):
         self.viewMenu.addAction(self.statusBarAction)
         windowViewSeparator = self.viewMenu.addSeparator()
         self.viewMenu.addAction(self.alwaysOnTopAction)
+        self.viewMenu.addAction(self.window_opacity_action)
         windowViewSeparator.setText("Window")
 
         playerPlayBackSeparator = self.playBackMenu.addSeparator()
@@ -349,6 +358,8 @@ class Window(QtWidgets.QMainWindow):
         self.controlPanelAction.toggled.connect(self.controlPanel.setVisible)
         self.previewPanelAction.toggled.connect(self.previewPanel.setVisible)
         self.alwaysOnTopAction.toggled.connect(self.toggleOnTop)
+        self.window_opacity_widget.slider.valueChanged.connect(
+            lambda value: self.setWindowOpacity(value / 100))
         # Help
         self.aboutAction.triggered.connect(self.showAbout)
         self.commandPortHelpAction.triggered.connect(self.showCommandPortHelp)
