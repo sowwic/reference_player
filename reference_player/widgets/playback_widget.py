@@ -4,6 +4,7 @@ import cv2
 
 from PySide2 import QtWidgets
 from PySide2 import QtCore
+from PySide2 import QtGui
 from PySide2 import QtMultimediaWidgets
 from PySide2 import QtMultimedia
 
@@ -77,7 +78,13 @@ class QDPlaybackWidget(QtWidgets.QWidget):
 
     def create_actions(self):
         """Create and configure QActions."""
-        pass
+        self.frame_step_forward_action = QtWidgets.QAction(self, "Frame step forward")
+        self.frame_step_back_action = QtWidgets.QAction(self, "Frame step back")
+        self.frame_step_back_action.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_A))
+        self.frame_step_forward_action.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_D))
+        # Add actions
+        self.addAction(self.frame_step_back_action)
+        self.addAction(self.frame_step_forward_action)
 
     def create_widgets(self):
         """Create and configure widgets."""
@@ -106,6 +113,10 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         self.main_layout.addWidget(self.media_controls)
 
     def create_connections(self):
+        # Actions
+        self.frame_step_back_action.triggered.connect(self.frame_step_back)
+        self.frame_step_forward_action.triggered.connect(self.frame_step_forward)
+
         # Reference
         self.reference.signals.media_file_changed.connect(self.update_media_file)
 
