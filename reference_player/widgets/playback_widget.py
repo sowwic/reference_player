@@ -108,13 +108,13 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         # Reference
         self.reference.signals.media_file_changed.connect(self.update_media_file)
 
-        """Create signal to slot connections."""
+        # """Create signal to slot connections."""
         self.media_player.positionChanged.connect(self.on_position_change)
         self.media_player.stateChanged.connect(self.on_media_state_change)
         self.media_controls.time_slider.sliderMoved.connect(self.set_position)
         self.frame_counter.editingFinished.connect(self.on_frame_counter_edit)
 
-        # Media controls
+        # # Media controls
         self.media_controls.go_to_start_btn.clicked.connect(self.go_to_start)
         self.media_controls.step_back_btn.clicked.connect(self.frame_step_back)
         self.media_controls.play_btn.clicked.connect(self.play)
@@ -163,7 +163,9 @@ class QDPlaybackWidget(QtWidgets.QWidget):
 
         current_frame = self.position_to_frame(position)
         self.media_controls.time_slider.setValue(current_frame)
-        self.frame_counter.setValue(current_frame)
+        if not self.frame_counter.hasFocus():
+            self.frame_counter.setValue(current_frame)
+
         if current_frame > self.media_controls.time_slider.maximum():
             self.media_player.pause()
 
@@ -179,11 +181,8 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         """
         if not self.media_file:
             return 0
-
-        frame = 0
-        if position:
-            progress = position / self.media_file.duration_ms
-            frame = progress * self.media_file.frame_count
+        progress = position / self.media_file.duration_ms
+        frame = progress * self.media_file.frame_count
         return math.ceil(frame)
 
     @QtCore.Slot(int)
