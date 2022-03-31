@@ -30,7 +30,8 @@ class MediaFile:
         self.frame_count = self.get_frame_count()
         self.fps: int = min(self.SUPPORTED_FPS, key=lambda x: abs(
             x - self.capture.get(cv2.CAP_PROP_FPS)))
-        self.duration_ms = self.frame_count * self.fps
+        self.duratiion_sec = self.frame_count / self.fps
+        self.duration_ms = self.duratiion_sec * 1000
         Logger.info(self)
 
     def get_frame_count(self) -> int:
@@ -166,7 +167,7 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         if not self.frame_counter.hasFocus():
             self.frame_counter.setValue(current_frame)
 
-        if current_frame > self.media_controls.time_slider.maximum():
+        if current_frame >= self.media_controls.time_slider.maximum():
             self.media_player.pause()
 
     @QtCore.Slot(float)
@@ -209,6 +210,9 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         - Sets time slider value
         - Sets playback position
         """
+        if self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
+            return
+
         self.media_controls.time_slider.setValue(self.frame_counter.value())
         self.set_position(self.frame_counter.value())
 
