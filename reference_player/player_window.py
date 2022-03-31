@@ -40,7 +40,9 @@ class PlayerWindow(QtWidgets.QMainWindow):
 
     def create_actions(self):
         """Create and configure QActions"""
-        self.file_open_action = QtWidgets.QAction(QtGui.QIcon("open.png"), "&Open", self)
+        self.file_new_action = QtWidgets.QAction("&New reference", self)
+        self.file_new_action.setShortcut("Ctrl+N")
+        self.file_open_action = QtWidgets.QAction(QtGui.QIcon("open.png"), "&Open reference", self)
         self.file_open_action.setShortcut("Ctrl+O")
         self.file_open_action.setStatusTip("Open video file")
         self.maya_port_action = QtWidgets.QAction("Command port", self)
@@ -65,6 +67,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.pin_window_btn.setCheckable(True)
         self.main_menubar.setCornerWidget(self.pin_window_btn, QtCore.Qt.TopRightCorner)
         self.file_menu: QtWidgets.QMenu = self.main_menubar.addMenu("&File")
+        self.file_menu.addAction(self.file_new_action)
         self.file_menu.addAction(self.file_open_action)
 
         self.edit_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Edit")
@@ -99,7 +102,8 @@ class PlayerWindow(QtWidgets.QMainWindow):
         """Create signal to slot connections"""
         # Actions
         self.pin_window_btn.toggled.connect(self.toggle_always_on_top)
-        self.file_open_action.triggered.connect(self.open_video_file)
+        self.file_new_action.triggered.connect(self.new_reference)
+        self.file_open_action.triggered.connect(self.open_reference_file)
         self.maya_port_action.triggered.connect(self.set_maya_port)
         self.help_debug_logging_action.toggled.connect(self.set_debug_logging)
 
@@ -139,7 +143,11 @@ class PlayerWindow(QtWidgets.QMainWindow):
         QtWidgets.QApplication.instance().reset_config()
         self.apply_config_values()
 
-    def open_video_file(self):
+    def new_reference(self):
+        new_ref = Reference(dict())
+        return self.add_new_reference_tab(new_ref)
+
+    def open_reference_file(self):
         """Opens file dialog for choosing a video file.
 
         If video file already open in one of the tabs - sets it active.
@@ -153,9 +161,14 @@ class PlayerWindow(QtWidgets.QMainWindow):
             Logger.error("Not a file: {0}".format(file_path))
             return
 
-        ref_file = Reference.from_file(file_path)
-        new_playback = QDPlaybackWidget(ref_file)
+        reference = Reference.from_file(file_path)
+        new_playback = QDPlaybackWidget(reference)
         self.video_tabs.addTab(new_playback, new_playback.reference.name)
+
+    def add_new_reference_tab(self, reference: Reference):
+        new_playback = QDPlaybackWidget(reference)
+        self.video_tabs.addTab(new_playback, new_playback.reference.name)
+        return new_playback
 
     def handle_tab_close(self, index: int):
         """Handles operation of closing a tab and deleting a playback widget.

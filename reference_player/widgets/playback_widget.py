@@ -158,13 +158,14 @@ class QDPlaybackWidget(QtWidgets.QWidget):
         Args:
             position (int): current playback position
         """
-        if self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
-            current_frame = self.position_to_frame(position)
-            if current_frame > self.media_controls.time_slider.maximum():
-                self.media_player.pause()
+        if not self.media_player.state() == QtMultimedia.QMediaPlayer.PlayingState:
+            return
 
-            self.media_controls.time_slider.setValue(current_frame)
-            self.frame_counter.setValue(current_frame)
+        current_frame = self.position_to_frame(position)
+        self.media_controls.time_slider.setValue(current_frame)
+        self.frame_counter.setValue(current_frame)
+        if current_frame > self.media_controls.time_slider.maximum():
+            self.media_player.pause()
 
     @QtCore.Slot(float)
     def position_to_frame(self, position: float) -> int:

@@ -18,23 +18,21 @@ class Reference:
         return f"Reference: {self.data}"
 
     def __init__(self, data: dict) -> None:
+        self.path: pathlib.Path = None
         self.data: dict = data
         self.signals = ReferenceSignals()
         Logger.debug(self)
 
-    @property
-    def path(self):
-        return self.media_file.with_suffix(self.FILE_EXTENSION)
-
-    def save(self):
-        fileFn.write_json(self.path, self.data)
+    def save(self, file_path: pathlib.Path):
+        fileFn.write_json(file_path, self.data)
+        self.path = file_path
 
     def is_media_file_valid(self):
         return self.media_file.is_file()
 
     @property
     def media_file(self) -> pathlib.Path:
-        return pathlib.Path(self.data.get("media_file"))
+        return pathlib.Path(self.data.get("media_file", "Null path"))
 
     @media_file.setter
     def media_file(self, file_path: pathlib.Path):
@@ -43,7 +41,11 @@ class Reference:
 
     @property
     def name(self):
-        return self.data.get("name", self.path.stem)
+        return self.data.get("name", "New reference")
+
+    @name.setter
+    def name(self, value: str):
+        self.data["name"] = value
 
     @classmethod
     def from_file(cls, file_path: pathlib.Path):
@@ -51,10 +53,11 @@ class Reference:
         if file_path.suffix == cls.FILE_EXTENSION:
             reference_data = fileFn.load_json(file_path)
             instance = cls(reference_data)
+            instance.path = file_path
         else:
             reference_data = {"media_file": file_path.as_posix(),
                               "name": file_path.name}
             instance = cls(reference_data)
-            instance.save()
+            instance.save(file_path.with_suffix(cls.FILE_EXTENSION))
 
         return instance
