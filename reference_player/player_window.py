@@ -5,13 +5,13 @@ from PySide2 import QtWidgets
 from PySide2 import QtCore
 from PySide2 import QtGui
 
-from reference_player import __version__
 from reference_player import Logger
 from reference_player import Config
 from reference_player.core.client import MayaClient
 from reference_player.core.reference import Reference
 from reference_player.utils import guiFn
 from reference_player.widgets.playback_widget import QDPlaybackWidget
+from reference_player.widgets import menus
 
 
 class PlayerWindow(QtWidgets.QMainWindow):
@@ -38,23 +38,14 @@ class PlayerWindow(QtWidgets.QMainWindow):
 
         self.apply_config_values()
 
+        # Maya client
+        self.maya_client = MayaClient(self.config.maya_port)
+        if self.config.maya_autoconnect:
+            self.maya_client.connect()
+
     def create_actions(self):
         """Create and configure QActions"""
-        self.file_new_action = QtWidgets.QAction("&New reference", self)
-        self.file_new_action.setShortcut("Ctrl+N")
-        self.file_open_action = QtWidgets.QAction(QtGui.QIcon("open.png"), "&Open reference", self)
-        self.file_open_action.setShortcut("Ctrl+O")
-        self.file_open_action.setStatusTip("Open video file")
-        self.maya_port_action = QtWidgets.QAction("Command port", self)
-        self.maya_connect_action = QtWidgets.QAction("Connect", self)
-        self.maya_auto_connect_action = QtWidgets.QAction("Auto connect at launch", self)
-        self.maya_auto_connect_action.setCheckable(True)
-        self.maya_auto_connect_action.setChecked(self.config.maya_autoconnect)
-        self.help_debug_logging_action = QtWidgets.QAction("Debug logging", self)
-        self.help_debug_logging_action.setCheckable(True)
-        self.help_debug_logging_action.setChecked(Logger.get_level() == 10)
-        self.help_reset_config_action = QtWidgets.QAction("Reset config", self)
-        self.help_reset_config_action.triggered.connect(self.reset_application_config)
+        pass
 
     def create_menubar(self):
         """Create and populate menubar"""
@@ -66,22 +57,16 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.pin_window_btn.setFlat(True)
         self.pin_window_btn.setCheckable(True)
         self.main_menubar.setCornerWidget(self.pin_window_btn, QtCore.Qt.TopRightCorner)
-        self.file_menu: QtWidgets.QMenu = self.main_menubar.addMenu("&File")
-        self.file_menu.addAction(self.file_new_action)
-        self.file_menu.addAction(self.file_open_action)
 
-        self.edit_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Edit")
+        self.file_menu = menus.FileMenu(self)
+        self.edit_menu = menus.EditMenu(self)
+        self.tools_menu = menus.ToolsMenu(self)
+        self.help_menu = menus.HelpMenu(self)
 
-        self.tools_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Tools")
-        maya_separator: QtWidgets.QAction = self.tools_menu.addSeparator()
-        maya_separator.setText("Maya")
-        self.tools_menu.addAction(self.maya_auto_connect_action)
-        self.tools_menu.addAction(self.maya_port_action)
-        self.tools_menu.addAction(self.maya_connect_action)
-
-        self.help_menu: QtWidgets.QMenu = self.main_menubar.addMenu("Help")
-        self.help_menu.addAction(self.help_debug_logging_action)
-        self.help_menu.addAction(self.help_reset_config_action)
+        self.main_menubar.addMenu(self.file_menu)
+        self.main_menubar.addMenu(self.edit_menu)
+        self.main_menubar.addMenu(self.tools_menu)
+        self.main_menubar.addMenu(self.help_menu)
 
     def create_widgets(self):
         """Create and configure widgets"""
@@ -102,10 +87,11 @@ class PlayerWindow(QtWidgets.QMainWindow):
         """Create signal to slot connections"""
         # Actions
         self.pin_window_btn.toggled.connect(self.toggle_always_on_top)
-        self.file_new_action.triggered.connect(self.new_reference)
-        self.file_open_action.triggered.connect(self.open_reference_file)
-        self.maya_port_action.triggered.connect(self.set_maya_port)
-        self.help_debug_logging_action.toggled.connect(self.set_debug_logging)
+        self.file_menu.file_new_action.triggered.connect(self.new_reference)
+        self.file_menu.file_open_action.triggered.connect(self.open_reference_file)
+        self.tools_menu.maya_port_action.triggered.connect(self.set_maya_port)
+        self.help_menu.debug_logging_action.toggled.connect(self.set_debug_logging)
+        self.help_menu.reset_config_action.triggered.connect(self.reset_application_config)
 
         # Tabs
         self.video_tabs.tabCloseRequested.connect(lambda index: self.handle_tab_close(index))
@@ -124,7 +110,7 @@ class PlayerWindow(QtWidgets.QMainWindow):
         self.config.window_position = (self.pos().x(), self.pos().y())
         self.config.window_size = (self.width(), self.height())
         self.config.window_always_on_top = self.pin_window_btn.isChecked()
-        self.config.maya_autoconnect = self.maya_auto_connect_action.isChecked()
+        self.config.maya_autoconnect = self.tools_menu.maya_auto_connect_action.isChecked()
 
     def apply_config_values(self):
         """Apply values from application config."""

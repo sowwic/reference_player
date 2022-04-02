@@ -18,6 +18,7 @@ class MayaClient(object):
         try:
             self.maya_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.maya_socket.connect(("localhost", self.port))
+            Logger.info(f"Connected to Maya on port {self.port}")
         except Exception:
             Logger.exception("Failed to create socket")
             return False

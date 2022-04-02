@@ -11,7 +11,7 @@ class QDTimeSlider(QtWidgets.QSlider):
         self.create_connections()
 
     def create_widgets(self):
-        pass
+        self.setTickPosition(QtWidgets.QSlider.TicksBothSides)
 
     def create_layouts(self):
         pass
@@ -21,3 +21,4 @@ class QDTimeSlider(QtWidgets.QSlider):
 
     def set_time_range(self, time_range: tuple[int, int]):
         self.setRange(*time_range)
+        self.setTickInterval((self.maximum() - self.minimum()) / 10)
