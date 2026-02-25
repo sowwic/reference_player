@@ -1,5 +1,19 @@
+<!DOCTYPE RCC>
 <RCC>
-    <qresource prefix="/">
-        <file>icons/home.png</file>
-    </qresource>
+  <qresource prefix="/">
+    <file>icons/home.png</file>
+    <file>icons/pause.png</file>
+    <file>icons/fast_forward.png</file>
+    <file>icons/play.png</file>
+    <file>icons/fast_rewind.png</file>
+    <file>icons/skip_previous.png</file>
+    <file>icons/skip_next.png</file>
+    <file>icons/music_note.png</file>
+    <file>icons/mute.png</file>
+    <file>icons/video_cam.png</file>
+    <file>icons/repeat_on.png</file>
+    <file>icons/media_link.png</file>
+    <file>icons/settings.png</file>
+    <file>icons/volume.png</file>
+  </qresource>
 </RCC>

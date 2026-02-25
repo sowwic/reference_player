@@ -4,7 +4,7 @@ from PySide6 import QtQml
 
 
 APPLICATION_QML_SOURCE = (
-    pathlib.Path(__file__).absolute().resolve().parent / "qml" / "application.qml"
+    pathlib.Path(__file__).absolute().resolve().parent / "qml" / "Application.qml"
 )
 
 
