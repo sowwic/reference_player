@@ -5,11 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "python",
+            "name": "reference-player",
+            "type": "debugpy",
             "request": "launch",
-            "program": "reference_player/main.py",
-            "console": "integratedTerminal"
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "envFile": "${workspaceFolder}/.env",
+            "module": "reference_player.main",
+            "console": "internalConsole",
+            "justMyCode": true
         }
     ]
 }

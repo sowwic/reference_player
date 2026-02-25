@@ -1,0 +1,31 @@
+
+name: Deploy MkDocs
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Deploy to GitHub Pages
+        run: uv run mkdocs gh-deploy --force

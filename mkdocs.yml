@@ -1,0 +1,38 @@
+site_name: reference-player Documentation
+site_description: Documentation for reference-player.
+site_author: Dima Shevchenko
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocs-autoapi:
+      autoapi_dir: "src/reference_player"
+      autoapi_ignore:
+        - "**/version.py"
+        
+        - "**/hooks-pyside6.py"
+        
+        - "**/resources/*"
+        - "**/main.py"
+      autoapi_file_patterns:
+        - "*.py"
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["src/reference_player"]
+          options:
+            docstring_style: google
+            show_signature: true
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: true
+            merge_init_into_class: true
+            show_if_no_docstring: true
+  - autorefs
+
+nav:
+  - User Guide: user/index.md
+  - Developer Guide: dev/index.md

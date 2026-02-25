@@ -1,0 +1,63 @@
+[project]
+name = "reference-player"
+version = "0.0.1"
+description = "Description"
+authors = [
+    {name = "Dima Shevchenko",email = "47799401+sowwic@users.noreply.github.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+packages = [
+    {include = "reference_player", from="src"},
+]
+dependencies = [
+    "opencv-python>=4.13.0.92",
+    "pyside6>=6.10.2",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.10.6,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.1,<10.0.0)",
+    "pytest-cov (>=7.0.0,<8.0.0)",
+    "pytest-mock (>=3.15.1,<4.0.0)",
+    
+    "pytest-qt (>=4.5.0,<5.0.0)",
+    
+    "mkdocs (>=1.6.1,<2.0.0)",
+    "mkdocs-material (>=9.7.0,<10.0.0)",
+    "mkdocstrings[python] (>=1.0.0,<2.0.0)",
+    "mkdocs-autorefs (>=1.4.3,<2.0.0)",
+    "mkdocs-autoapi (>=0.4.1,<0.5.0)",
+    "ruff (>=0.14.5,<0.15.0)",
+    
+    "pyinstaller (>=6.16.0,<7.0.0)",
+    
+]
+
+[tool.ruff]
+src = ["src"]
+exclude = ["**/resources_rc.py"]
+
+show-fixes = true
+line-length = 89
+lint.select = [
+    "E",
+    "F",
+    "UP",
+]
+lint.ignore = [
+    "D100",
+    "D104",
+    "D103",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=reference_player --cov-report=term-missing"
+log_cli = true
+log_cli_level = "ERROR"
