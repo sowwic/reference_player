@@ -96,6 +96,11 @@ qrc:  ## Generate Python resources from Qt .qrc files
 	@pyside6-rcc src/reference_player/resources/resources.qrc -o src/reference_player/resources/resources_rc.py
 	@printf "$(GREEN)QRC generation complete.$(RESET)\n"
 
+.PHONY: qml-object-dump
+qmltypes:  ## Generate QML types json
+	$(call banner, Generating QML types json...)
+	pyside6-metaobjectdump src/**/*.py --out-file .qmltypes
+	@printf "$(GREEN)QML types json generation complete.$(RESET)\n"
 
 	
 .PHONY: iconset
