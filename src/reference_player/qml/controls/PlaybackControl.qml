@@ -8,19 +8,11 @@ Item {
     id: root
 
     required property MediaPlayer mediaPlayer
-    property alias playButton: playButton
     property alias muted: audioControl.muted
     property alias volume: audioControl.volume
 
     implicitHeight: 200
     implicitWidth: 300
-
-    component PlaybackButton: ToolButton {
-        Layout.preferredWidth: 35
-        Layout.preferredHeight: 35
-        icon.width: 24
-        icon.height: 24
-    }
 
     Action {
         id: homeAction
@@ -30,6 +22,13 @@ Item {
     Action {
         id: playAction
         icon.source: "qrc:/icons/play"
+        onTriggered: root.mediaPlayer.play()
+    }
+
+    Action {
+        id: pauseAction
+        icon.source: "qrc:/icons/pause"
+        onTriggered: root.mediaPlayer.pause()
     }
 
     Action {
@@ -64,14 +63,15 @@ Item {
 
         PlaybackButton {
             id: pauseButton
-
-            action: playAction
+            action: pauseAction
+            visible: root.mediaPlayer.playbackState === MediaPlayer.PlayingState
         }
 
         PlaybackButton {
             id: playButton
 
             action: playAction
+            visible: root.mediaPlayer.playbackState !== MediaPlayer.PlayingState
         }
         PlaybackButton {
             action: fastForwardAction

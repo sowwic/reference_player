@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtMultimedia
+import "./controls"
 
 Item {
     id: root
@@ -23,22 +24,16 @@ Item {
 
     AudioOutput {
         id: audioOutput
+        muted: playbackController.muted
+        volume: playbackController.volume
     }
 
     PlaybackControl {
-        id: playbackControls
+        id: playbackController
 
         mediaPlayer: mediaPlayer
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-    }
-
-    Connections {
-        target: playbackControls.playButton
-
-        function onClicked() {
-            mediaPlayer.play();
-        }
     }
 }
