@@ -15,25 +15,28 @@ Item {
         audioOutput: audioOutput
     }
 
-    VideoOutput {
-        id: videoOutput
-
+    ColumnLayout {
         anchors.fill: parent
-        visible: mediaPlayer.mediaStatus > 0
-    }
 
-    AudioOutput {
-        id: audioOutput
-        muted: playbackController.muted
-        volume: playbackController.volume
-    }
+        VideoOutput {
+            id: videoOutput
 
-    PlaybackControl {
-        id: playbackController
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+        }
 
-        mediaPlayer: mediaPlayer
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
+        AudioOutput {
+            id: audioOutput
+            muted: playbackController.muted
+            volume: playbackController.volume
+        }
+
+        PlaybackControl {
+            id: playbackController
+            Layout.preferredHeight: 50
+            Layout.preferredWidth: implicitWidth
+            Layout.alignment: Qt.AlignCenter
+            mediaPlayer: mediaPlayer
+        }
     }
 }
