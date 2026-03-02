@@ -33,8 +33,8 @@ Item {
 
         PlaybackControl {
             id: playbackController
-            Layout.preferredHeight: 50
-            Layout.preferredWidth: implicitWidth
+            Layout.preferredHeight: implicitHeight
+            Layout.fillWidth: true
             Layout.alignment: Qt.AlignCenter
             mediaPlayer: mediaPlayer
         }

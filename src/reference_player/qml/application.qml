@@ -5,9 +5,9 @@ import QtQuick.Layouts
 ApplicationWindow {
     title: "Reference Player"
     visible: true
-    width: 1280
-    height: 720
-    minimumWidth: 960
+    width: minimumWidth
+    height: minimumHeight
+    minimumWidth: 700
     minimumHeight: 540
 
     ReferencePlayer {
